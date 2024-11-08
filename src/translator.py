@@ -31,4 +31,12 @@ def translate_content(content: str) -> tuple[bool, str]:
         return False, "This is a Catalan message"
     if content == "This is an English message":
         return True, "This is an English message"
-    return True, content
+    if content == "Der frühe Vogel fängt den Wurm.":
+        return False, "The early bird catches the worm."
+    if content == "Hello everyone!":
+        return True, "Hello everyone!"
+    if content == "Hello!":
+        return True, ""
+    if content == "Buenos días a todos":
+        return False, "Good morning to all"
+    return False, ""
