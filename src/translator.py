@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 client = AzureOpenAI(
-    api_key=os.getenv("LLM_KEY"),  # Fetch API key from environment
+    api_key=os.getenv("AZURE_OPENAI_API_KEY"),  # Fetch API key from environment
     api_version="2024-02-15-preview",
     azure_endpoint="https://p4-team-team.openai.azure.com/"
 )
