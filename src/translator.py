@@ -1,42 +1,65 @@
-def translate_content(content: str) -> tuple[bool, str]:
-    if content == "这是一条中文消息":
-        return False, "This is a Chinese message"
-    if content == "Ceci est un message en français":
-        return False, "This is a French message"
-    if content == "Esta es un mensaje en español":
-        return False, "This is a Spanish message"
-    if content == "Esta é uma mensagem em português":
-        return False, "This is a Portuguese message"
-    if content  == "これは日本語のメッセージです":
-        return False, "This is a Japanese message"
-    if content == "이것은 한국어 메시지입니다":
-        return False, "This is a Korean message"
-    if content == "Dies ist eine Nachricht auf Deutsch":
-        return False, "This is a German message"
-    if content == "Questo è un messaggio in italiano":
-        return False, "This is an Italian message"
-    if content == "Это сообщение на русском":
-        return False, "This is a Russian message"
-    if content == "هذه رسالة باللغة العربية":
-        return False, "This is an Arabic message"
-    if content == "यह हिंदी में संदेश है":
-        return False, "This is a Hindi message"
-    if content == "นี่คือข้อความภาษาไทย":
-        return False, "This is a Thai message"
-    if content == "Bu bir Türkçe mesajdır":
-        return False, "This is a Turkish message"
-    if content == "Đây là một tin nhắn bằng tiếng Việt":
-        return False, "This is a Vietnamese message"
-    if content == "Esto es un mensaje en catalán":
-        return False, "This is a Catalan message"
-    if content == "This is an English message":
-        return True, "This is an English message"
-    if content == "Der frühe Vogel fängt den Wurm.":
-        return False, "The early bird catches the worm."
-    if content == "Hello everyone!":
-        return True, "Hello everyone!"
-    if content == "Hello!":
-        return True, ""
-    if content == "Buenos días a todos":
-        return False, "Good morning to all"
-    return False, ""
+import os
+from openai import AzureOpenAI
+from dotenv import load_dotenv
+
+load_dotenv()
+
+client = AzureOpenAI(
+    api_key=os.getenv("AZURE_OPENAI_API_KEY"),  # Fetch API key from environment
+    api_version="2024-02-15-preview",
+    azure_endpoint="https://p4-team-team.openai.azure.com/"
+)
+
+def query_llm_robust(post: str) -> tuple[bool, str]:
+    context = (
+        "You're an expert translator proficient in identifying and translating various languages. "
+        "If the text provided is in English, respond with True, \"<text>\". "
+        "If it's in another language, translate it into English and respond with False, \"<translation>\". "
+        "If the text is unintelligible or malformed, respond with False, \"\"."
+    )
+
+    try:
+      response = client.chat.completions.create(
+          model="gpt-4o-mini",
+          messages=[
+              {
+                  "role": "system",
+                  "content": context
+              },
+              {
+                  "role": "user",
+                  "content": post
+              }
+          ]
+      )
+
+      response_text = response.choices[0].message.content.strip()
+
+      if "," not in response_text:
+            print("Warning: Unexpected response format from LLM. Missing comma separator.")
+            return (False, "")
+
+      first_part, _, second_part = response_text.partition(",")
+
+      if first_part.strip() == "True":
+          english_text = second_part.strip()[1:-1]  # Assuming quotes are included in the response
+          if isinstance(english_text, str) and any(char.isalpha() for char in english_text):
+              return (True, english_text)
+          else:
+              print("Warning: Expected string content for English text but got a different type or invalid content.")
+              return (True, "") 
+
+      elif first_part.strip() == "False":
+          translation = second_part.strip()[1:-1]  # Assuming quotes are included in the response
+          if isinstance(translation, str) and any(char.isalpha() for char in translation):
+              return (False, translation)
+          else:
+              print("Warning: Expected string content for translation but got a different type or invalid content.")
+              return (False, "") 
+      else:
+          print("Warning: Unexpected response format from LLM.")
+          return (False, "")
+
+    except Exception as e:
+        print(f"Error in query_llm_robust: {e}. Defaulting to safe output.")
+        return (False, "")
